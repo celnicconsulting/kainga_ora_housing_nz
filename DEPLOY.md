@@ -31,11 +31,11 @@ Git LFS is not required.
    - Repository: `celnicconsulting/kainga_ora_housing_nz`
    - Branch: `main`
    - Main file path: `app/kainga_ora_housing_nz.py`
-   - **Custom subdomain**: `kainga-ora-housing-nz`
+   - **Custom subdomain**: `celnic-housing-nz`
 
    Streamlit subdomains allow lowercase letters, digits and hyphens only — no
    underscores — so the URL uses hyphens even though the repository name uses
-   underscores. That gives `kainga-ora-housing-nz.streamlit.app`.
+   underscores. That gives `celnic-housing-nz.streamlit.app`.
 5. Deploy
 
 The first build takes a few minutes while dependencies install.
