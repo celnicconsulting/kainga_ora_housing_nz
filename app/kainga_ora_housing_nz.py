@@ -548,9 +548,9 @@ def render_tab_national():
 
     st.caption(
         f"🔶 The subsidy metric is **synthetic-derived**: about "
-        f"\${s['ANNUAL_SUBSIDY_BN']:.2f} billion "
+        f"\\${s['ANNUAL_SUBSIDY_BN']:.2f} billion "
         f"a year across {int(s['TENANCIES']):,} modelled tenancies, at a mean of "
-        f"\${s['AVG_SUBSIDY']:,.0f}/week. Market rent is real; the income-related "
+        f"\\${s['AVG_SUBSIDY']:,.0f}/week. Market rent is real; the income-related "
         f"rent it is subtracted from is modelled. Every other metric above is "
         f"published data."
     )
