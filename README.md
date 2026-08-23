@@ -4,7 +4,7 @@ An interactive view of New Zealand's public housing system, built entirely from
 open government data: who is waiting for a house, what stock exists and where,
 and how far the rent a state tenant pays sits below the market.
 
-**Live app:** _add your Streamlit URL here_
+**Live app:** <https://kainga-ora-housing-nz.streamlit.app>
 
 ---
 
