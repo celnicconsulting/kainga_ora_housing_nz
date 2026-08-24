@@ -123,25 +123,59 @@ QUICK_JUMPS = {
 }
 
 
-@st.cache_resource
-def get_connection():
-    """Open the published extract read-only, once per session.
+def _extract_fingerprint():
+    """Size and modified time of the extract, used as a cache key.
 
-    Cached with cache_resource so the connection is shared across reruns. Note
-    the consequence for deployment: replacing the .duckdb file on disk does not
-    reach an already-open connection, so a data refresh needs an app reboot, not
-    just a redeploy.
+    Streamlit Community Cloud hot-reloads on a push: it pulls the new files and
+    re-runs the script, but does NOT clear `cache_resource`. A connection opened
+    before the pull therefore keeps reading the replaced file, and a query
+    written against a newly added column fails to bind against data that is
+    sitting correctly on disk a few bytes away.
+
+    Making the fingerprint an argument to `get_connection` turns a data refresh
+    into a cache miss, so the connection reopens by itself. Without it the app
+    needs a manual reboot after every data change, which is a step that will
+    eventually be forgotten.
     """
     for path in DB_CANDIDATES:
         if path.exists():
-            return duckdb.connect(str(path), read_only=True)
-    raise FileNotFoundError(
-        "kainga_ora_housing_public.duckdb not found. Expected it beside the app "
-        "under data/. Run scripts/09_build_public.py to create it."
-    )
+            stat = path.stat()
+            return (str(path), stat.st_size, int(stat.st_mtime))
+    return ("missing", 0, 0)
+
+
+@st.cache_resource
+def _open_connection(fingerprint):
+    """Open the extract read-only. Re-runs whenever the fingerprint changes."""
+    path = fingerprint[0]
+    if path == "missing":
+        raise FileNotFoundError(
+            "kainga_ora_housing_public.duckdb not found. Expected it beside the "
+            "app under data/. Run scripts/09_build_public.py to create it."
+        )
+    return duckdb.connect(path, read_only=True)
+
+
+def get_connection():
+    """The read-only connection to the published extract.
+
+    Re-opens automatically when the extract on disk changes; see
+    `_extract_fingerprint` for why that matters on Community Cloud.
+    """
+    return _open_connection(_extract_fingerprint())
 
 
 @st.cache_data(show_spinner=False)
+def _run_query_cached(sql: str, fingerprint) -> pd.DataFrame:
+    """Execute and cache, keyed on both the SQL and the extract it ran against.
+
+    `fingerprint` is unused in the body and essential in the signature: it is
+    part of the cache key, so refreshing the data file invalidates every cached
+    frame rather than leaving rows from the previous extract in memory.
+    """
+    return _open_connection(fingerprint).execute(sql).df()
+
+
 def run_query(sql: str) -> pd.DataFrame:
     """Run SQL against the extract and cache the frame.
 
@@ -149,7 +183,7 @@ def run_query(sql: str) -> pd.DataFrame:
     `session.sql(sql).to_pandas()` moves the whole app into Streamlit in
     Snowflake; nothing else in the file knows which engine it is talking to.
     """
-    return get_connection().execute(sql).df()
+    return _run_query_cached(sql, _extract_fingerprint())
 
 
 # ====================DATA====================
