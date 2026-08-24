@@ -42,8 +42,8 @@ reconcile back to published figures. Every synthetic surface is banner-marked.
    mismatch between who is waiting and what exists. Both series are real.
 5. **Asset & Maintenance** — fully synthetic. No agency publishes property
    condition or maintenance at any grain.
-6. **Data & Methodology** — every source with its URL and licence, the real vs
-   synthetic lineage, and the reconciliation checks.
+6. **Pipeline** — every source with its URL, licence, download date and
+   checksum; the real vs synthetic lineage; and the reconciliation checks.
 
 ---
 

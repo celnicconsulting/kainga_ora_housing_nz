@@ -433,8 +433,11 @@ def get_download_manifest(df_db_schema):
     return run_query("""
         SELECT dataset_id AS DATASET_ID, family AS FAMILY, period AS PERIOD,
                file_name AS FILE_NAME, ext AS FORMAT,
-               ROUND(bytes / 1024.0, 1) AS SIZE_KB, licence AS LICENCE,
-               url AS URL
+               ROUND(bytes / 1024.0, 1) AS SIZE_KB,
+               downloaded_at AS DOWNLOADED_AT,
+               md5 AS CHECKSUM_MD5,
+               licence AS LICENCE,
+               url AS SOURCE_URL
         FROM META.DOWNLOAD_MANIFEST
         ORDER BY dataset_id, period DESC, file_name
     """)
@@ -499,7 +502,7 @@ def render_main_tabs():
         "💰 Market Rent vs IRR",
         "📋 Housing Register",
         "🔧 Asset & Maintenance",
-        "📥 Data & Methodology",
+        "⚙️ Pipeline",
     ])
     with tab1:
         render_tab_national()
@@ -1000,7 +1003,7 @@ def render_tab_assets():
 
 # ---------------------------------------------------------------- tab 6
 def render_tab_methodology():
-    st.header("Data & Methodology")
+    st.header("Pipeline & Methodology")
     st.markdown(
         "Every figure in this app is either downloaded from a New Zealand "
         "government publication or generated from one. This tab shows which is "
@@ -1095,6 +1098,71 @@ def render_synthetic_banner(headline, detail, level="partial"):
 
 
 # ====================STATIC_METHODS====================
+def render_disclaimer_banner(
+    *,
+    produced_by="Celnic Consulting",
+    purpose="showing the benefits of Flipping the Data Team",
+    source_tab="⚙️ Pipeline",
+    data_origin="NEW ZEALAND GOVERNMENT DATA",
+    accent="#FFD100",
+    ink="#111",
+):
+    """Hazard-striped provenance banner, shown above every tab.
+
+    Reusable across Celnic data applications — nothing about this function is
+    specific to housing, or to any one department. Everything that changes
+    between applications is a keyword argument:
+
+        produced_by   who built it, named as the independent party
+        purpose       why it exists; set to None to drop the clause entirely
+        source_tab    the tab carrying source links, dates and checksums
+        data_origin   the jurisdiction, for the headline
+        accent / ink  the two banner colours
+
+    Deliberately no departments are named. Naming them invites a stale list the
+    moment an application picks up another source, and the banner would then be
+    quietly wrong about its own provenance. The Pipeline tab is the single place
+    that enumerates sources, and it is generated from the download manifest
+    rather than written by hand.
+
+    The banner sits above the tabs, not inside a footer, because it has to be
+    read before any figure is — a caveat below the chart has already failed.
+
+    NOTE: use `st.html`, not `st.markdown(unsafe_allow_html=True)`. The latter
+    strips nested divs and inline styles, which is the whole banner.
+    """
+    stripe = (f"height:14px; background:repeating-linear-gradient("
+              f"45deg, {accent} 0 14px, {ink} 14px 28px);")
+    purpose_clause = f" for the purpose of {purpose}," if purpose else ""
+
+    st.html(
+        f"""
+        <div style="border:3px solid {ink}; border-radius:6px; overflow:hidden;
+                    margin:0 0 14px 0; font-family:sans-serif;">
+          <div style="{stripe}"></div>
+          <div style="background:{accent}; color:{ink}; padding:12px 16px;">
+            <div style="font-weight:800; font-size:15px; letter-spacing:.02em;">
+              &#9888;&#65039; BUILT FROM {data_origin} &mdash;
+              NOT AN OFFICIAL GOVERNMENT PRODUCT
+            </div>
+            <div style="font-size:13.5px; line-height:1.5; margin-top:6px;">
+              Figures are reproduced from public releases by the departments
+              listed in the <b>{source_tab}</b> tab. This application is produced
+              independently by <b>{produced_by}</b>{purpose_clause} and
+              <b>does not represent the views, policy or official statistics of
+              those departments</b>.
+              <b>Please refer to the original figures in the data source and do
+              not rely on these.</b>
+              Every original source file, with its download date and checksum,
+              is listed in the <b>{source_tab}</b> tab.
+            </div>
+          </div>
+          <div style="{stripe}"></div>
+        </div>
+        """
+    )
+
+
 def _safe_filename(text):
     cleaned = "".join(c for c in str(text) if c.isalnum() or c in " _-").strip()
     return cleaned.replace(" ", "_")[:40] or "results"
@@ -1205,6 +1273,7 @@ def render_detail_with_excel(df, heading, excel_title, file_stem, key):
 def main():
     render_sidebar()
     st.title("Kāinga Ora / New Zealand Public Housing Intelligence")
+    render_disclaimer_banner()
     render_main_tabs()
 
 
