@@ -1,13 +1,74 @@
 # ====================IMPORTS====================
 """Kāinga Ora / NZ Public Housing Intelligence.
 
-Structure follows the `snowflake-streamlit-development` template - cached
-`get_*` data methods, `render_*` visual methods, a thin `main()`. The one
-departure is the session layer: this build runs on Streamlit Community Cloud
-rather than Streamlit in Snowflake, so `get_active_session()` is replaced by a
-read-only DuckDB connection behind the same function boundary. Every data method
-keeps its `df_db_schema` argument, so moving the app into Snowflake means
-swapping `run_query` for `session.sql(...).to_pandas()` and nothing else.
+This file is intended to read as a VISUAL SPECIFICATION of the application: the
+comments describe what appears on screen, in what order, and what each colour and
+marker means, so the interface can be reviewed and rebuilt from the source alone
+without running it. Every `render_*` docstring is a layout description, top to
+bottom, of the block it draws.
+
+====================================================================
+SCREEN LAYOUT
+====================================================================
+
+    ┌──────────────┬───────────────────────────────────────────────┐
+    │  SIDEBAR     │  H1  Kāinga Ora / New Zealand Public Housing  │
+    │              │      Intelligence                             │
+    │ 🏘️ title      │                                               │
+    │ caption      │  ╔═══════════════════════════════════════════╗ │
+    │              │  ║ HAZARD BANNER (yellow/black, above tabs)  ║ │
+    │ Latest       │  ║ NOT AN OFFICIAL GOVERNMENT PRODUCT        ║ │
+    │ published    │  ╚═══════════════════════════════════════════╝ │
+    │ periods      │                                               │
+    │  · KO stock  │  ┌ tab bar ──────────────────────────────────┐ │
+    │  · Register  │  │ 📊 │ 🗺️ │ 💰 │ 📋 │ 🔧 │ ⚙️              │ │
+    │  · Rent      │  └───────────────────────────────────────────┘ │
+    │  · HUD       │                                               │
+    │              │  active tab body                              │
+    │ Real vs      │                                               │
+    │ synthetic    │                                               │
+    │              │                                               │
+    │ ℹ️ about      │                                               │
+    └──────────────┴───────────────────────────────────────────────┘
+
+Tabs, left to right:
+
+    1  📊 National Overview   real       supply, demand, market context
+    2  🗺️ Stock Map           part syn   H3 hexagons, resolutions 8-12
+    3  💰 Market Rent vs IRR  mixed      the subsidy gap - the centrepiece
+    4  📋 Housing Register    part syn   waitlist and the bedroom mismatch
+    5  🔧 Asset & Maintenance full syn   condition, cost, backlog
+    6  ⚙️ Pipeline            real       provenance, lineage, reconciliation
+
+====================================================================
+VISUAL VOCABULARY - the same meaning everywhere
+====================================================================
+
+    🔶  orange diamond      this figure is synthetic or synthetic-derived
+    yellow/black stripes    provenance warning; read before any figure
+    st.warning (amber)      partly synthetic tab - some series are real
+    st.error (red)          fully synthetic tab - nothing here is measured
+    BRAND blue   #2E86AB    measured quantities: stock, market rent, supply
+    ACCENT red   #E4572E    pressure and demand: register, subsidy, mould
+    INK navy     #1A3A5C    reference marks and tooltips
+    blue gradient           density - more is simply more
+    red-to-yellow           pressure - red is worse
+    📋 heading + 📥 Excel   every detail table, button right-justified
+
+Charts are Plotly; maps are pydeck H3HexagonLayer on a CartoDB Voyager basemap.
+All money is NZD per week, the New Zealand convention. NZ English throughout.
+
+====================================================================
+CODE STRUCTURE
+====================================================================
+
+Follows the `snowflake-streamlit-development` template - cached `get_*` data
+methods, `render_*` visual methods, a thin `main()`. The one departure is the
+session layer: this build runs on Streamlit Community Cloud rather than
+Streamlit in Snowflake, so `get_active_session()` is replaced by a read-only
+DuckDB connection behind the same function boundary. Every data method keeps its
+`df_db_schema` argument, so moving the app into Snowflake means swapping
+`run_query` for `session.sql(...).to_pandas()` and nothing else.
 """
 
 import io
@@ -44,10 +105,15 @@ df_db = "PUBLIC"
 df_schema_name = "MART"
 df_db_schema = f"{df_db}.{df_schema_name}"
 
-BRAND = "#2E86AB"
-INK = "#1A3A5C"
-ACCENT = "#E4572E"
+# Palette. The three colours carry meaning and are used consistently: a reader
+# who learns them on one tab can read the next without a legend.
+BRAND = "#2E86AB"    # measured supply - Kainga Ora stock, market rent
+INK = "#1A3A5C"      # reference marks, tooltip backgrounds, register totals
+ACCENT = "#E4572E"   # pressure and demand - register, subsidy gap, mould
 
+# Map opens on Wellington CBD, as the work packet specifies. The quick-jump
+# buttons fly the camera to the three main centres; zoom is tuned per centre so
+# each frames its own urban area rather than sharing one national zoom.
 WELLINGTON = (-41.2865, 174.7762)
 QUICK_JUMPS = {
     "Wellington": (-41.2865, 174.7762, 11.0),
@@ -59,6 +125,13 @@ QUICK_JUMPS = {
 
 @st.cache_resource
 def get_connection():
+    """Open the published extract read-only, once per session.
+
+    Cached with cache_resource so the connection is shared across reruns. Note
+    the consequence for deployment: replacing the .duckdb file on disk does not
+    reach an already-open connection, so a data refresh needs an app reboot, not
+    just a redeploy.
+    """
     for path in DB_CANDIDATES:
         if path.exists():
             return duckdb.connect(str(path), read_only=True)
@@ -70,12 +143,23 @@ def get_connection():
 
 @st.cache_data(show_spinner=False)
 def run_query(sql: str) -> pd.DataFrame:
+    """Run SQL against the extract and cache the frame.
+
+    The single seam between the app and its data. Swapping this one function for
+    `session.sql(sql).to_pandas()` moves the whole app into Streamlit in
+    Snowflake; nothing else in the file knows which engine it is talking to.
+    """
     return get_connection().execute(sql).df()
 
 
 # ====================DATA====================
+# One cached query per visual element. Each docstring names the element it
+# feeds, so any chart on screen can be traced back to the SQL behind it and any
+# query here can be located on screen. Nothing is computed twice: aggregation
+# happens in DuckDB, the app only draws.
 @st.cache_data(show_spinner=False)
 def get_national_quarter(df_db_schema):
+    """Feeds: Tab 1 - supply and register trend lines, and the detail table."""
     return run_query("""
         SELECT * FROM MART.M_NATIONAL_QUARTER
         WHERE PERIOD >= '2014Q1'
@@ -85,6 +169,8 @@ def get_national_quarter(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_latest_snapshot(df_db_schema):
+    """Feeds: Tab 1 - the five-metric KPI row. Sidebar - latest published
+    periods."""
     return run_query("""
         WITH ko AS (
             SELECT PERIOD, STATE_RENTALS FROM MART.M_KO_STOCK_NATIONAL_QUARTER
@@ -116,6 +202,7 @@ def get_latest_snapshot(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_subsidy_summary(df_db_schema):
+    """Feeds: Tab 1 - the 🔶 weekly IRRS subsidy metric and its caption."""
     return run_query("""
         SELECT
             COUNT(*)                              AS TENANCIES,
@@ -130,6 +217,7 @@ def get_subsidy_summary(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_vacancy_summary(df_db_schema):
+    """Feeds: Tab 1 - vacancy share behind the KPI row."""
     return run_query("""
         SELECT
             SUM(CASE WHEN STATUS <> 'Tenanted' THEN 1 ELSE 0 END) AS VACANT,
@@ -142,6 +230,7 @@ def get_vacancy_summary(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_stock_portfolio(df_db_schema):
+    """Feeds: Tab 1 - stacked area, portfolio composition."""
     return run_query("""
         SELECT PERIOD, PORTFOLIO, SUM(PROPERTIES) AS PROPERTIES
         FROM MART.M_KO_STOCK_PORTFOLIO
@@ -152,6 +241,7 @@ def get_stock_portfolio(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_map_data(df_db_schema, resolution, ta_filter):
+    """Feeds: Tab 2 - the H3 hexagon layer, its four metrics and detail table."""
     hex_col = f"H3_RES_{resolution}"
     where = ""
     if ta_filter and ta_filter != "All of New Zealand":
@@ -178,6 +268,7 @@ def get_map_data(df_db_schema, resolution, ta_filter):
 
 @st.cache_data(show_spinner=False)
 def get_ta_options(df_db_schema):
+    """Feeds: Tab 2 - the territorial authority filter."""
     df = run_query("""
         SELECT DISTINCT TA_NAME FROM SYN.SYN_KO_PROPERTY ORDER BY TA_NAME
     """)
@@ -186,6 +277,7 @@ def get_ta_options(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_rent_comparison(df_db_schema, period, bedrooms):
+    """Feeds: Tab 3 - overlaid bars, subsidy scatter and the detail table."""
     safe_period = str(period).replace("'", "''")
     safe_beds = str(bedrooms).replace("'", "''")
     return run_query(f"""
@@ -222,6 +314,7 @@ def get_rent_comparison(df_db_schema, period, bedrooms):
 
 @st.cache_data(show_spinner=False)
 def get_rent_periods(df_db_schema):
+    """Feeds: Tab 3 - the quarter selector."""
     df = run_query("""
         SELECT DISTINCT PERIOD FROM MART.M_MARKET_RENT_TA_BEDROOM
         ORDER BY PERIOD DESC
@@ -231,6 +324,7 @@ def get_rent_periods(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_rent_trend(df_db_schema, ta_names):
+    """Feeds: Tab 3 - measured market rent over time, one line per district."""
     if not ta_names:
         return pd.DataFrame()
     quoted = ", ".join("'" + str(t).replace("'", "''") + "'" for t in ta_names)
@@ -245,6 +339,7 @@ def get_rent_trend(df_db_schema, ta_names):
 
 @st.cache_data(show_spinner=False)
 def get_register_trend(df_db_schema):
+    """Feeds: Tab 4 - the KPI row and the priority stacked area."""
     return run_query("""
         SELECT PERIOD, REGISTER_TOTAL, PRIORITY_A, PRIORITY_B, TRANSFER_TOTAL
         FROM MART.M_REGISTER_NATIONAL_QUARTER
@@ -255,6 +350,7 @@ def get_register_trend(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_register_by_region(df_db_schema):
+    """Feeds: Tab 4 - register by region lines, and the region filter."""
     return run_query("""
         SELECT PERIOD, REGION, SUM(APPLICANTS) AS APPLICANTS
         FROM MART.M_REGISTER_TA_QUARTER
@@ -296,6 +392,7 @@ def get_bedroom_mismatch(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_register_ta_latest(df_db_schema):
+    """Feeds: Tab 4 - register totals by district."""
     return run_query("""
         SELECT TA_NAME, REGION, APPLICANTS, LATITUDE, LONGITUDE
         FROM MART.M_REGISTER_TA_QUARTER
@@ -307,6 +404,7 @@ def get_register_ta_latest(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_register_explorer(df_db_schema, region, priority):
+    """Feeds: Tab 4 - the synthetic applicant detail table."""
     clauses = []
     if region and region != "All":
         clauses.append(f"REGION = '{str(region).replace(chr(39), chr(39) * 2)}'")
@@ -326,6 +424,7 @@ def get_register_explorer(df_db_schema, region, priority):
 
 @st.cache_data(show_spinner=False)
 def get_days_to_house(df_db_schema):
+    """Feeds: Tab 4 - days-to-house histogram and its median caption."""
     return run_query("""
         SELECT DAYS_TO_HOUSE, PRIORITY, REGION
         FROM SYN.SYN_HOUSING_REGISTER
@@ -335,6 +434,7 @@ def get_days_to_house(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_condition_by_decade(df_db_schema):
+    """Feeds: Tab 5 - condition by build decade heatmap."""
     return run_query("""
         SELECT BUILD_DECADE, CONDITION_SCORE, COUNT(*) AS PROPERTIES
         FROM SYN.SYN_KO_PROPERTY
@@ -345,6 +445,7 @@ def get_condition_by_decade(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_maintenance_summary(df_db_schema):
+    """Feeds: Tab 5 - the KPI row and cost-by-category bars."""
     return run_query("""
         SELECT CATEGORY, URGENCY,
                COUNT(*)                       AS WORK_ORDERS,
@@ -359,6 +460,7 @@ def get_maintenance_summary(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_maintenance_by_ta(df_db_schema):
+    """Feeds: Tab 5 - the maintenance detail table."""
     return run_query("""
         SELECT m.TA_NAME, m.REGION,
                COUNT(*)                                  AS WORK_ORDERS,
@@ -376,6 +478,7 @@ def get_maintenance_by_ta(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_mould_hotspots(df_db_schema):
+    """Feeds: Tab 5 - the mould and damp hexagon map."""
     return run_query("""
         SELECT H3_RES_8 AS HEX,
                COUNT(*)                     AS MOULD_ORDERS,
@@ -390,6 +493,7 @@ def get_mould_hotspots(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_backlog_ageing(df_db_schema):
+    """Feeds: Tab 5 - backlog ageing stacked bars."""
     return run_query("""
         SELECT CASE
                    WHEN DAYS_TO_CLOSE <= 7   THEN '0-7 days'
@@ -407,6 +511,7 @@ def get_backlog_ageing(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_source_register(df_db_schema):
+    """Feeds: Tab 6 - the source register table."""
     return run_query("""
         SELECT DATASET_ID, SOURCE_NAME, KIND, CADENCE, LICENCE, TARGET_SCHEMA,
                URL, NOTES
@@ -417,11 +522,13 @@ def get_source_register(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_lineage(df_db_schema):
+    """Feeds: Tab 6 - the real versus synthetic lineage table."""
     return run_query("SELECT * FROM META.LINEAGE ORDER BY BASIS, TABLE_NAME")
 
 
 @st.cache_data(show_spinner=False)
 def get_validation(df_db_schema):
+    """Feeds: Tab 6 - the reconciliation checks table and its pass/fail state."""
     return run_query("""
         SELECT CHECK_NAME, STATUS, DETAIL, NOTE FROM STG.VALIDATION_RESULTS
         ORDER BY STATUS, CHECK_NAME
@@ -430,6 +537,8 @@ def get_validation(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_download_manifest(df_db_schema):
+    """Feeds: Tab 6 - every file downloaded, with download date and MD5 checksum.
+    This is the table the hazard banner points at."""
     return run_query("""
         SELECT dataset_id AS DATASET_ID, family AS FAMILY, period AS PERIOD,
                file_name AS FILE_NAME, ext AS FORMAT,
@@ -445,6 +554,7 @@ def get_download_manifest(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_family_aliases(df_db_schema):
+    """Feeds: Tab 6 - publication renames, every merge and deliberate non-merge."""
     return run_query("""
         SELECT OBSERVED_FAMILY, CANONICAL_FAMILY, ACTION, RATIONALE
         FROM META.FAMILY_ALIASES ORDER BY ACTION, OBSERVED_FAMILY
@@ -453,6 +563,7 @@ def get_family_aliases(df_db_schema):
 
 @st.cache_data(show_spinner=False)
 def get_coverage(df_db_schema):
+    """Feeds: Tab 6 - period coverage by publication family."""
     return run_query("""
         SELECT SCHEMA_NAME, FAMILY, CADENCE,
                COUNT(*)                                        AS PERIOD_SLOTS,
@@ -466,6 +577,22 @@ def get_coverage(df_db_schema):
 
 # ====================SIDEBAR====================
 def render_sidebar():
+    """SIDEBAR, top to bottom.
+
+        1  title      🏘️ NZ Public Housing
+        2  caption    the four source agencies
+        3  h4         Latest published periods
+           bullets    KO stock · Housing Register · Market rent · HUD (ceased)
+        4  rule
+        5  h4         Real vs synthetic
+           paragraph  which tabs are published data, which are modelled
+        6  rule
+        7  info box   independent build, not affiliated or endorsed
+
+    The published-period list comes first because these four series end on four
+    different dates. A chart that stops in 2023 is otherwise easily misread as a
+    collapse rather than as a publication ending.
+    """
     st.sidebar.title("🏘️ NZ Public Housing")
     st.sidebar.caption("Kāinga Ora, MSD, HUD and MBIE public data")
 
@@ -495,7 +622,24 @@ def render_sidebar():
 
 
 # ====================TABS====================
+# One function per tab, each drawing its block top to bottom in the order its
+# docstring lists. Tabs never share mutable state; switching tabs re-runs only
+# the active body against the cached queries.
 def render_main_tabs():
+    """The six-tab bar and its bodies, left to right.
+
+        📊 National Overview    real, one 🔶 metric
+        🗺️ Stock Map            amber banner - counts real, locations modelled
+        💰 Market Rent vs IRR   mixed - real market rent, modelled IRR
+        📋 Housing Register     amber banner - aggregates real, explorer modelled
+        🔧 Asset & Maintenance  red banner - entirely modelled
+        ⚙️ Pipeline             provenance, lineage, reconciliation
+
+    Ordered so the reader meets published data before modelled data, and reaches
+    the evidence for both in the final tab. Streamlit executes every tab body on
+    each rerun, so a failure in any tab surfaces immediately rather than lying in
+    wait until that tab is opened.
+    """
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📊 National Overview",
         "🗺️ Stock Map",
@@ -520,6 +664,29 @@ def render_main_tabs():
 
 # ---------------------------------------------------------------- tab 1
 def render_tab_national():
+    """TAB 1 - National Overview. Real data, one synthetic-derived metric.
+
+        H2  National Overview                      + caption
+        ---------------------------------------------------------------
+        [ KO homes ][ CHP homes ][ Register ][ Median rent ][ IRRS 🔶 ]
+        caption: what the 🔶 metric is, in full
+        --- rule ---
+        [ Public housing supply      ][ Register and transfer register ]
+          line  KO homes      BRAND     line  Housing Register   INK
+          line  CHP dotted    ACCENT    line  Transfer Register  pale
+        h5  Kainga Ora portfolio composition
+            stacked area, one band per portfolio, Blues scale
+            caption: why portfolios are reported separately
+        📋 National quarterly series               + 📥 Excel
+
+    Only the fifth metric is modelled, so it alone carries 🔶 and a caption
+    beneath the row explains it. A full-width banner here would wrongly imply
+    the other four metrics are modelled too.
+
+    The CHP line is dotted and stops mid-chart because HUD ceased publishing
+    after 2023Q4. Dotting makes the ending read as a publication decision rather
+    than as community housing disappearing.
+    """
     st.header("National Overview")
     st.caption("Public housing supply, demand and market context, from the "
                "published record.")
@@ -626,6 +793,29 @@ METRIC_CHOICES = {
 
 
 def render_tab_map():
+    """TAB 2 - Stock Map. Counts are real, locations are modelled.
+
+        H2  Stock Map
+        🔶 AMBER banner: locations synthetic, counts real
+        [ H3 resolution 8-12 ][ Colour by ][ Jump to: Wgtn/Akl/Chch/All ]
+        [ Filter to a territorial authority                            ]
+        ===============================================================
+          pydeck H3HexagonLayer over CartoDB Voyager basemap
+        ===============================================================
+        caption: colour scale and its numeric range
+        [ Hexagons ][ Properties ][ Mean condition ][ Mean subsidy ]
+        📋 Hexagon detail, top 2,000               + 📥 Excel
+
+    Amber rather than red: hexagon counts and their district totals are real
+    published figures, and only each property's position inside its district is
+    modelled. The banner says exactly that instead of implying the whole map is
+    invented.
+
+    The resolution slider carries a help note that at 11-12 nearly every
+    property occupies its own hexagon, so the map stops showing density and
+    starts showing the modelled point pattern - which would otherwise look like
+    a finding.
+    """
     st.header("Stock Map")
     render_synthetic_banner(
         "Property locations on this map are **synthetic**.",
@@ -674,6 +864,24 @@ def render_tab_map():
 
 
 def render_h3_map(df, color_column, palette, unit, jump, resolution):
+    """The hexagon layer itself, plus the colour-scale caption beneath it.
+
+    Two palettes, chosen by what the metric means rather than by taste:
+
+        "blue"  DENSITY - pale to deep blue. More is simply more, and the eye
+                reads depth as quantity without needing a legend.
+        "heat"  PRESSURE - red through to yellow, red is worse. Used for
+                vacancy rate and subsidy gap, where a high value is a problem
+                rather than an achievement.
+
+    Values are min-max normalised within the current filter so the ramp always
+    spans the visible data, and the caption prints the real range so a reader
+    can see what the darkest hexagon is worth. Zoom rises with resolution;
+    otherwise a res-12 view opens far too wide to show anything.
+
+    Tooltip on hover: dominant TA, property count, mean bedrooms, mean
+    condition, vacancy rate, mean subsidy, most common dwelling type.
+    """
     d = df.copy()
     values = pd.to_numeric(d[color_column], errors="coerce").fillna(0)
     lo, hi = values.min(), values.max()
@@ -723,6 +931,35 @@ def render_h3_map(df, color_column, palette, unit, jump, resolution):
 
 # ---------------------------------------------------------------- tab 3
 def render_tab_rent():
+    """TAB 3 - Market Rent vs Income-Related Rent. The centrepiece.
+
+        H2  Market Rent vs Income-Related Rent     + caption
+        v  ⚠️ Read this before using these numbers  EXPANDER, OPEN BY DEFAULT
+           four bold caveats: provisional bond data, private-tenancy-only
+           scope, TA x bedroom rent derived, income-related rent synthetic
+        [ Quarter ][ Bedrooms ]
+        horizontal bars, top 25 districts by market rent
+            bar  market rent, derived           BRAND
+            bar  income-related rent 🔶         amber, overlaid
+            ◆    TA median rent, measured       INK diamonds
+        h5  Subsidy gap by district
+            scatter  x market rent, y income-related rent
+                     bubble size = tenancies, colour = subsidy (OrRd)
+            caption: how to read distance from the diagonal
+        h5  Measured market rent over time
+            multiselect districts -> line chart, fully measured
+            caption: why geometric mean rather than arithmetic
+        📋 Rent comparison                         + 📥 Excel
+
+    The caveat expander opens by default and sits above every figure. This is
+    the tab most likely to be quoted, and three of its four caveats change what
+    the numbers mean rather than merely qualifying them.
+
+    Bars are overlaid, not grouped: the subject is the gap between what the
+    market would charge and what the tenant pays, and overlaying makes that gap
+    the visible quantity. The measured TA median is a diamond rather than a bar
+    so the eye separates it from the two modelled quantities beside it.
+    """
     st.header("Market Rent vs Income-Related Rent")
     st.caption("The gap between what a state house would fetch privately and "
                "what its tenant pays — the Crown's income-related rent subsidy.")
@@ -818,6 +1055,30 @@ throughout.
 
 # ---------------------------------------------------------------- tab 4
 def render_tab_register():
+    """TAB 4 - Housing Register. Aggregates real, applicant explorer synthetic.
+
+        H2  Housing Register
+        🔶 AMBER banner: totals real, applicant explorer synthetic
+        [ Register total ][ Priority A ][ Priority B ][ Transfer register ]
+        stacked area  Priority A ACCENT over Priority B amber
+        h5  Register by region            one line per region
+        h5  Bedroom mismatch: who is waiting versus what exists
+            grouped bars  demand % ACCENT  vs  KO stock % BRAND
+            caption: quantifies the one-bedroom shortage
+        h5  Applicant explorer 🔶 synthetic
+            [ Region ][ Priority ]
+            histogram  days to house, split by priority
+            caption: median modelled time to house
+        📋 Applicant explorer 🔶 synthetic          + 📥 Excel
+
+    The bedroom-mismatch chart is the analytical payoff of the tab and both its
+    series are real published data - demand from MSD, supply from Kainga Ora -
+    so the caption says so explicitly. It is the one place where the structural
+    problem is visible directly in official statistics rather than inferred.
+
+    The register-total metric uses delta_color="inverse": a rising waitlist is
+    bad news, and the default green-for-up would read as an improvement.
+    """
     st.header("Housing Register")
     render_synthetic_banner(
         "Register totals, priority split and bedroom demand are **published MSD "
@@ -917,6 +1178,25 @@ def render_tab_register():
 
 # ---------------------------------------------------------------- tab 5
 def render_tab_assets():
+    """TAB 5 - Asset & Maintenance. Entirely synthetic.
+
+        H2  Asset & Maintenance
+        🔴 RED banner, full width: nothing on this tab is measured
+        [ Work orders ][ Total cost ][ Mean cost ][ Mean days to close ]
+        [ Condition by build decade   ][ Maintenance cost by category  ]
+          heatmap, Blues                 horizontal bars, OrRd
+          caption: the bimodal build era
+        h5  Mould and damp hotspots
+            H3 res-8 hexagons, red-to-yellow, national view
+        h5  Backlog ageing
+            stacked bars by time-to-close band, split by urgency
+        📋 Maintenance by district 🔶 synthetic     + 📥 Excel
+
+    Red rather than amber, and full width: no New Zealand agency publishes
+    property condition or maintenance at any grain, so unlike tabs 2 and 4 there
+    is no real series underneath to anchor it. The banner states that no figure
+    on the tab describes a real property or a real repair.
+    """
     st.header("Asset & Maintenance")
     render_synthetic_banner(
         "Everything on this tab is **synthetic**.",
@@ -1003,6 +1283,31 @@ def render_tab_assets():
 
 # ---------------------------------------------------------------- tab 6
 def render_tab_methodology():
+    """TAB 6 - Pipeline. How to check everything on the other five tabs.
+
+        H2  Pipeline & Methodology                 + intro paragraph
+        H3  Reconciliation checks
+            green success / red error, driven by the stored pass count
+            paragraph: why cross-source checks are the ones that matter
+            📋 Reconciliation checks                + 📥 Excel
+        H3  Real versus synthetic lineage           📋 + 📥 Excel
+        H3  Source register                         📋 + 📥 Excel
+        H3  Every file downloaded                   📋 + 📥 Excel
+            name, period, size, download date, MD5 checksum, licence, URL
+        H3  Publication renames                     📋 + 📥 Excel
+        H3  Period coverage                         📋 + 📥 Excel
+        v  Known limitations, stated plainly        expander, closed
+
+    The pass/fail state is computed from the stored validation results rather
+    than asserted in prose, so the tab cannot claim the checks pass while they
+    are failing.
+
+    The download table is what the hazard banner points at: it carries a
+    download date and an MD5 for all 404 source files.
+
+    Limitations sit in a closed expander rather than being left out - available
+    to anyone who looks, without displacing the reconciliation evidence above.
+    """
     st.header("Pipeline & Methodology")
     st.markdown(
         "Every figure in this app is either downloaded from a New Zealand "
@@ -1090,7 +1395,18 @@ def render_tab_methodology():
 
 
 # ====================VISUALISATION====================
+# Shared visual components used by more than one tab.
 def render_synthetic_banner(headline, detail, level="partial"):
+    """Per-tab synthetic-data banner. Amber for partial, red for full.
+
+    Two levels, because the distinction is real and matters to a reader:
+
+        "partial"  st.warning, amber - some series on this tab are published
+                   data and some are modelled; the detail says which is which
+        "full"     st.error, red - nothing on this tab is measured
+
+    Placed directly under the tab heading, above every figure it qualifies.
+    """
     if level == "full":
         st.error(f"🔶 **{headline}**\n\n{detail}")
     else:
@@ -1164,6 +1480,12 @@ def render_disclaimer_banner(
 
 
 def _safe_filename(text):
+    """Sanitise text for use in a download filename.
+
+    Keeps alphanumerics, spaces and dashes, converts spaces to underscores and
+    truncates to 40 characters. Applied to anything that reaches a filename from
+    a user-facing selection, such as the quarter and bedroom count on tab 3.
+    """
     cleaned = "".join(c for c in str(text) if c.isalnum() or c in " _-").strip()
     return cleaned.replace(" ", "_")[:40] or "results"
 
@@ -1271,6 +1593,17 @@ def render_detail_with_excel(df, heading, excel_title, file_stem, key):
 
 # ====================MAIN====================
 def main():
+    """Draw the page, top to bottom.
+
+        1  sidebar               published periods, real-vs-synthetic note
+        2  H1                    application title
+        3  hazard banner         provenance warning, above the tabs
+        4  tab bar and body      the six tabs
+
+    The hazard banner is drawn before the tabs, not inside a footer, so the
+    provenance caveat is read before any figure rather than found underneath
+    one.
+    """
     render_sidebar()
     st.title("Kāinga Ora / New Zealand Public Housing Intelligence")
     render_disclaimer_banner()
