@@ -127,6 +127,8 @@ credentials, no network access, no API keys.
 Application code: MIT. Derived data: Creative Commons Attribution, per the
 originating agencies. See [LICENSE](LICENSE).
 
-Independent build by Celnic Consulting. Not
-affiliated with, endorsed by, or produced on behalf of Kāinga Ora, MSD,
+Independent build by Celnic Consulting. Enquiries and corrections are welcome
+through the issues page of this repository.
+
+Not affiliated with, endorsed by, or produced on behalf of Kāinga Ora, MSD,
 HUD/MCERT or MBIE.
