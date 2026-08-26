@@ -609,6 +609,111 @@ def get_coverage(df_db_schema):
     """)
 
 
+# ====================REFERENCE_DOCUMENTS====================
+# Long-form documentation is loaded from markdown files at run time rather than
+# embedded as string literals in this module. Two reasons: the documents are
+# reviewed and edited as documents, by people who should not have to touch Python
+# to do it; and a 400-line string literal in the middle of an application file
+# obscures the code around it. The files ship in the repository beside the app.
+
+REFERENCE_DOCS = {
+    "phase_two": [
+        APP_DIR.parent / "README_PHASE_TWO.md",
+        APP_DIR.parent.parent / "README_PHASE_TWO.md",
+        Path("README_PHASE_TWO.md"),
+    ],
+}
+
+
+@st.cache_data(show_spinner=False)
+def load_reference_doc(key: str) -> str:
+    """Read a reference markdown document from disk.
+
+    Returns the document text, or an empty string if no candidate path exists.
+    Cached so the file is read once per session rather than on every rerun.
+
+    Feeds: Tab 7 - the Build Notes document.
+    """
+    for path in REFERENCE_DOCS.get(key, []):
+        try:
+            if path.exists():
+                return path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+    return ""
+
+
+def render_tab_build_notes():
+    """TAB 7 - Build Notes. The Phase Two write-up, rendered as markdown.
+
+        H2  Build Notes                            + caption
+        📥 Download the markdown                   right-justified button
+        --- rule ---
+        the document itself, rendered as markdown
+
+    The content is NOT written in this file. It is `README_PHASE_TWO.md`, loaded
+    from disk at run time and rendered with `st.markdown`, so the document stays
+    a document: reviewable in a pull request, readable on GitHub, and editable
+    without touching the application.
+
+    The heading banner separators used in the source file (`# ====...====`) are
+    stripped before rendering. They organise the raw markdown but render as
+    enormous headings in Streamlit.
+
+    If the file is missing - which would mean the repository was assembled
+    incompletely - the tab says so plainly and names the file, rather than
+    rendering an empty page.
+    """
+    st.header("Build Notes")
+    st.caption(
+        "How the platform was designed and built: the transformation layer, the "
+        "mart contract, the synthetic data, and what deployment taught. This is "
+        "the project's Phase Two document, rendered from markdown."
+    )
+
+    doc = load_reference_doc("phase_two")
+    if not doc:
+        st.warning(
+            "**README_PHASE_TWO.md was not found.**\n\n"
+            "This tab renders that file from disk. It ships in the repository "
+            "beside the app; if it is missing, the deployment is incomplete."
+        )
+        return
+
+    hdr_col, dl_col = st.columns([3, 1])
+    with hdr_col:
+        st.markdown("#### 📐 Phase Two — design, build and validation")
+    with dl_col:
+        st.download_button(
+            label="📥 Markdown",
+            data=doc.encode("utf-8"),
+            file_name="README_PHASE_TWO.md",
+            mime="text/markdown",
+            key="dl_phase_two_md",
+            type="primary",
+        )
+
+    st.markdown("---")
+    st.markdown(_clean_reference_markdown(doc))
+
+
+def _clean_reference_markdown(doc: str) -> str:
+    """Strip the source file's banner separators before rendering.
+
+    `# ====================SECTION_NAME====================` organises the raw
+    file and is how these documents are written across the platform, but
+    Streamlit renders it as an h1 of equals signs. The banner line is dropped;
+    the human-readable heading beneath it is what the reader sees.
+    """
+    kept = []
+    for line in doc.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# ====") and stripped.endswith("===="):
+            continue
+        kept.append(line)
+    return "\n".join(kept)
+
+
 # ====================SIDEBAR====================
 def render_sidebar():
     """SIDEBAR, top to bottom.
@@ -668,19 +773,21 @@ def render_main_tabs():
         📋 Housing Register     amber banner - aggregates real, explorer modelled
         🔧 Asset & Maintenance  red banner - entirely modelled
         ⚙️ Pipeline             provenance, lineage, reconciliation
+        🏗️ Build Notes          the Phase Two engineering write-up, as markdown
 
     Ordered so the reader meets published data before modelled data, and reaches
-    the evidence for both in the final tab. Streamlit executes every tab body on
+    the evidence for both in the final two tabs. Streamlit executes every tab body on
     each rerun, so a failure in any tab surfaces immediately rather than lying in
     wait until that tab is opened.
     """
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "📊 National Overview",
         "🗺️ Stock Map",
         "💰 Market Rent vs IRR",
         "📋 Housing Register",
         "🔧 Asset & Maintenance",
         "⚙️ Pipeline",
+        "🏗️ Build Notes",
     ])
     with tab1:
         render_tab_national()
@@ -694,6 +801,8 @@ def render_main_tabs():
         render_tab_assets()
     with tab6:
         render_tab_methodology()
+    with tab7:
+        render_tab_build_notes()
 
 
 # ---------------------------------------------------------------- tab 1

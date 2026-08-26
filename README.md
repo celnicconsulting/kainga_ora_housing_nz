@@ -30,7 +30,7 @@ reconcile back to published figures. Every synthetic surface is banner-marked.
 
 ---
 
-## The six tabs
+## The seven tabs
 
 1. **National Overview** — supply, register and market rent since 2014, from the
    published record.
@@ -44,6 +44,10 @@ reconcile back to published figures. Every synthetic surface is banner-marked.
    condition or maintenance at any grain.
 6. **Pipeline** — every source with its URL, licence, download date and
    checksum; the real vs synthetic lineage; and the reconciliation checks.
+7. **Build Notes** — the Phase Two engineering write-up, rendered from
+   [README_PHASE_TWO.md](README_PHASE_TWO.md): how the transformation layer was
+   designed from the app spec, the mart contract, the synthetic data, and what
+   deployment taught.
 
 ---
 
