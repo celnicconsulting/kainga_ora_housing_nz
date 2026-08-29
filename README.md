@@ -44,8 +44,8 @@ reconcile back to published figures. Every synthetic surface is banner-marked.
    condition or maintenance at any grain.
 6. **Pipeline** — every source with its URL, licence, download date and
    checksum; the real vs synthetic lineage; and the reconciliation checks.
-7. **Build Notes** — the Phase Two engineering write-up, rendered from
-   [README_PHASE_TWO.md](README_PHASE_TWO.md): how the transformation layer was
+7. **Build Notes** — the engineering write-up, rendered from
+   [app/kainga_ora_housing_nz__readme.md](app/kainga_ora_housing_nz__readme.md): how the transformation layer was
    designed from the app spec, the mart contract, the synthetic data, and what
    deployment taught.
 

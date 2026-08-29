@@ -1,25 +1,24 @@
-# ====================KAINGA_ORA_HOUSING_BUILD_NOTES====================
+# Flipping the Data Team — example driving from business outcome
 
-# Staging Layer, Mart, Synthetic Data and Streamlit Application
+The usual order is to model the data first and hope a useful application falls
+out of it. This platform was built the other way round: the application spec came
+first, and the transformation layer was designed to serve it.
 
-**Status:** Complete. All 19 reconciliation checks pass.
-**Built:** 23–24 August 2026
-**Staging + mart + synthetic:** `db/housing.duckdb` (47.8 MB)
-**Published extract:** `public/kainga_ora_housing_public.duckdb` (18.3 MB)
-**App:** `app/kainga_ora_housing_nz.py` — 1,648 lines, live at
-<https://celnic-housing-nz.streamlit.app>
+Each tab was reduced to the single question it has to answer, and each question
+to the grain that answers it. Only then was a mart table written — and a table
+that no question needed was not built at all.
 
-```bash
-python -m streamlit run public_repo/app/kainga_ora_housing_nz.py --server.port 8520
-```
+What follows is that reasoning, in the order it happened, with the places the
+data refused to cooperate left in.
+
+**Built from public releases by Kāinga Ora – Homes and Communities, the Ministry
+of Social Development, the Ministry of Housing and Urban Development and the
+Ministry of Business, Innovation and Employment.** All 19 reconciliation checks
+pass. The published extract is 18.3 MB.
 
 ---
 
-# ====================THE_PLAN_FLIPPED_DRIVING_FROM_BUSINESS_OUTCOME====================
-
-The app spec came first and the transformation layer was designed to serve it, not
-the other way round. Each tab was reduced to the single question it has to answer,
-and each question to the grain that answers it.
+# ====================THE_QUESTIONS_CAME_FIRST====================
 
 | Tab | Question | Grain required | Mart table built |
 |---|---|---|---|
@@ -49,16 +48,19 @@ and each question to the grain that answers it.
 6. Every figure has to declare itself, so **real / derived / synthetic** is a
    property of the table, recorded in `META.LINEAGE` and surfaced in tab 6.
 
+Note what is *absent* from that list: no table was built because it was
+interesting, and no chart was designed around a table that already existed.
+
 ---
 
 # ====================STAGING_LAYER====================
 
 ## The problem
 
-The RAW layer holds 115 tables from 404 files across three genuinely different
-shapes: MBIE's tidy CSVs, MSD's and Kāinga Ora's presentation workbooks as
-faithful cell grids, and a decade of Kāinga Ora PDFs. Writing a parser per file
-would mean hundreds of parsers that break at every release.
+The landing layer holds 115 tables from 404 files across three genuinely
+different shapes: MBIE's tidy CSVs, MSD's and Kāinga Ora's presentation workbooks
+as faithful cell grids, and a decade of Kāinga Ora PDFs. Writing a parser per
+file would mean hundreds of parsers that break at every release.
 
 ## The solution: four resolvers
 
@@ -90,13 +92,13 @@ Inspecting the corpus showed four layouts. Each gets one resolver in
   cannot be reconstructed are flagged `UNRECONCILED` rather than guessed at.
 
 Output: **24 staging tables, 1,291,741 rows**, all of it real published data.
-Nothing synthetic enters the platform until step 08.
+Nothing synthetic enters the platform until the synthetic build step.
 
 ---
 
 # ====================MART====================
 
-Schema `MART` in `db/housing.duckdb`. **16 tables, 129,056 rows.**
+Schema `MART`. **16 tables, 129,056 rows.**
 
 | Table | Rows | Coverage |
 |---|---|---|
@@ -125,6 +127,10 @@ So a real market rent by TA *and* bedrooms cannot be assembled from the public
 files. The mart scales each district's measured rent by the national bedroom
 relativity for the same quarter and sets `IS_DERIVED = TRUE`. Tab 3 says so in a
 caveat block that opens by default, and every axis label reads "derived".
+
+This is what driving from the outcome looks like when the data says no: the
+question was worth answering, so the gap was filled and labelled — not filled
+quietly, and not dropped.
 
 ## Synthetic layer
 
@@ -267,8 +273,8 @@ embedded Power BI dashboard with no export, so CHP homes, transitional housing
 and Housing First stop at 2023Q4. Five MSD housing datasets the work packet does
 not mention were found while resolving a dead URL and partly fill 2024–2026.
 
-**The regional factsheets are not mined.** 66 HUD regional PDFs are landed in RAW
-and left there: they change prose template almost every quarter, and turning them
+**The regional factsheets are not mined.** 66 HUD regional PDFs are landed and
+left there: they change prose template almost every quarter, and turning them
 into numbers risks figures that are quietly wrong.
 
 ---
@@ -283,8 +289,8 @@ python scripts/run_all.py --only 06  # one step
 
 | Script | Purpose |
 |---|---|
-| `01`–`04` | Discover, download, extract, land the RAW layer |
-| `05_stage.py` | Resolve RAW into 24 tidy staging tables |
+| `01`–`04` | Discover, download, extract, build the landing layer |
+| `05_stage.py` | Resolve the landing layer into 24 tidy staging tables |
 | `06_validate.py` | 19 reconciliation checks; non-zero exit on failure |
 | `07_mart.py` | 16 conformed mart tables, including the derived rent table |
 | `08_synthetic.py` | 4 synthetic tables, seed 42, reconciled to published totals |
@@ -293,18 +299,17 @@ python scripts/run_all.py --only 06  # one step
 | `nz_families.py` | Publication renames, every merge and non-merge recorded |
 | `nz_geography.py` | TA and local-board reference geography |
 
-One step needs a human first: Kāinga Ora sits behind Imperva bot protection, so
-`scripts/.ko_cookie` needs a current browser-harvested session cookie. If it is
-stale, discovery falls back to cached copies of the pages under `raw/_pages/`
-rather than silently losing a dataset.
+One step needs a human first: Kāinga Ora sits behind Imperva bot protection, so a
+current browser-harvested session cookie must be stored before the crawl. If it
+is stale, discovery falls back to cached copies of the pages rather than silently
+losing a dataset.
 
 ---
 
-# ====================ADDENDUM_WHAT_DEPLOYMENT_TAUGHT====================
+# ====================WHAT_DEPLOYMENT_TAUGHT====================
 
-Added 24 August 2026, after the app went live. Two defects survived a green
-19-check validation run, and both were found by looking at the deployed app
-rather than at the pipeline.
+Two defects survived a green 19-check validation run, and both were found by
+looking at the deployed application rather than at the pipeline.
 
 ## A filter that was right for one chart and wrong for another
 
@@ -316,12 +321,12 @@ never happened.
 
 The existing cross-source check compared *staging* against the published portfolio
 total and passed, because the defect was introduced **downstream of staging**.
-Validation that stops at the layer before the one the app reads will miss this
-whole class of bug.
+Validation that stops at the layer before the one the application reads will miss
+this whole class of bug.
 
 Fixed by using each district's published row total — reliable even when the cells
 beside it are not — and keeping every district. Two mart-level checks now repeat
-the comparison against what the app actually reads.
+the comparison against what the application actually reads.
 
 ## A cache that outlived its data
 
@@ -337,6 +342,6 @@ data refresh becomes a cache miss and the connection reopens by itself. Query
 results are keyed on the same fingerprint, or a reopened connection would still
 serve frames cached from the previous file.
 
-This had already been written up in `DEPLOY.md` as "reboot after a data refresh".
-A manual step that must be remembered every time is a step that will eventually be
-forgotten, so it is now handled in code.
+This had already been written up in the deployment guide as "reboot after a data
+refresh". A manual step that must be remembered every time is a step that will
+eventually be forgotten, so it is now handled in code.

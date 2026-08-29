@@ -616,11 +616,16 @@ def get_coverage(df_db_schema):
 # to do it; and a 400-line string literal in the middle of an application file
 # obscures the code around it. The files ship in the repository beside the app.
 
+# The Build Notes file sits beside the application file and shares its stem, so
+# `app/<name>.py` is documented by `app/<name>__readme.md`. Keeping them together
+# means the pair is copied, reviewed and deployed as one unit; a document kept at
+# the repository root drifts away from the code it describes.
+BUILD_NOTES_PATH = APP_DIR / (Path(__file__).stem + "__readme.md")
+
 REFERENCE_DOCS = {
-    "phase_two": [
-        APP_DIR.parent / "README_PHASE_TWO.md",
-        APP_DIR.parent.parent / "README_PHASE_TWO.md",
-        Path("README_PHASE_TWO.md"),
+    "build_notes": [
+        BUILD_NOTES_PATH,
+        APP_DIR / "kainga_ora_housing_nz__readme.md",
     ],
 }
 
@@ -676,7 +681,8 @@ def render_tab_build_notes():
         --- rule ---
         the document itself, rendered as markdown
 
-    The content is NOT written in this file. It is `README_PHASE_TWO.md`, loaded
+    The content is NOT written in this file. It is the `__readme.md` beside it,
+    loaded
     from disk at run time and rendered with `st.markdown`, so the document stays
     a document: reviewable in a pull request, readable on GitHub, and editable
     without touching the application.
@@ -696,12 +702,13 @@ def render_tab_build_notes():
         "the project's build document, rendered from markdown."
     )
 
-    doc = load_reference_doc("phase_two")
+    doc = load_reference_doc("build_notes")
     if not doc:
         st.warning(
-            "**README_PHASE_TWO.md was not found.**\n\n"
+            f"**{BUILD_NOTES_PATH.name} was not found.**\n\n"
             "This tab renders that file from disk. It ships in the repository "
-            "beside the app; if it is missing, the deployment is incomplete."
+            "beside the application file; if it is missing, the deployment is "
+            "incomplete."
         )
         return
 
@@ -712,9 +719,9 @@ def render_tab_build_notes():
         st.download_button(
             label="📥 Markdown",
             data=doc.encode("utf-8"),
-            file_name="README_PHASE_TWO.md",
+            file_name=BUILD_NOTES_PATH.name,
             mime="text/markdown",
-            key="dl_phase_two_md",
+            key="dl_build_notes_md",
             type="primary",
         )
 
