@@ -1,6 +1,6 @@
 # ====================KAINGA_ORA_HOUSING_PHASE_TWO====================
 
-# Phase Two — Staging Layer, Mart, Synthetic Data and Streamlit Application
+# Staging Layer, Mart, Synthetic Data and Streamlit Application
 
 **Status:** Complete. All 19 reconciliation checks pass.
 **Built:** 23–24 August 2026

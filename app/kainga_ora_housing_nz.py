@@ -668,7 +668,7 @@ def render_tab_build_notes():
     st.caption(
         "How the platform was designed and built: the transformation layer, the "
         "mart contract, the synthetic data, and what deployment taught. This is "
-        "the project's Phase Two document, rendered from markdown."
+        "the project's build document, rendered from markdown."
     )
 
     doc = load_reference_doc("phase_two")
@@ -682,7 +682,7 @@ def render_tab_build_notes():
 
     hdr_col, dl_col = st.columns([3, 1])
     with hdr_col:
-        st.markdown("#### 📐 Phase Two — design, build and validation")
+        st.markdown("#### 📐 Design, build and validation")
     with dl_col:
         st.download_button(
             label="📥 Markdown",
