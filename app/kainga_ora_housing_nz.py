@@ -625,22 +625,47 @@ REFERENCE_DOCS = {
 }
 
 
-@st.cache_data(show_spinner=False)
-def load_reference_doc(key: str) -> str:
-    """Read a reference markdown document from disk.
+def _reference_doc_fingerprint(key: str):
+    """Path, size and mtime of a reference document, used as a cache key.
 
-    Returns the document text, or an empty string if no candidate path exists.
-    Cached so the file is read once per session rather than on every rerun.
-
-    Feeds: Tab 7 - the Build Notes document.
+    The same trap as the database connection: Community Cloud hot-reloads on a
+    push but does not clear the caches, so a document cached before the pull
+    would keep rendering while its file on disk had changed. Editing only the
+    markdown - which is exactly what a wording change is - would then appear to
+    do nothing. Recomputed on every run; never cached itself.
     """
     for path in REFERENCE_DOCS.get(key, []):
         try:
             if path.exists():
-                return path.read_text(encoding="utf-8")
+                stat = path.stat()
+                return (str(path), stat.st_size, int(stat.st_mtime))
         except OSError:
             continue
-    return ""
+    return ("missing", 0, 0)
+
+
+@st.cache_data(show_spinner=False)
+def _read_reference_doc(fingerprint) -> str:
+    """Read the document. Re-runs whenever the file on disk changes."""
+    path = fingerprint[0]
+    if path == "missing":
+        return ""
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def load_reference_doc(key: str) -> str:
+    """Read a reference markdown document from disk.
+
+    Returns the document text, or an empty string if no candidate path exists.
+    Cached against the file's fingerprint, so editing the markdown is enough to
+    change what the tab renders.
+
+    Feeds: Tab 7 - the Build Notes document.
+    """
+    return _read_reference_doc(_reference_doc_fingerprint(key))
 
 
 def render_tab_build_notes():

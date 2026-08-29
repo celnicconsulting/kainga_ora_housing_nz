@@ -1,4 +1,4 @@
-# ====================KAINGA_ORA_HOUSING_PHASE_TWO====================
+# ====================KAINGA_ORA_HOUSING_BUILD_NOTES====================
 
 # Staging Layer, Mart, Synthetic Data and Streamlit Application
 
@@ -283,7 +283,7 @@ python scripts/run_all.py --only 06  # one step
 
 | Script | Purpose |
 |---|---|
-| `01`–`04` | Phase One: discover, download, extract, RAW layer |
+| `01`–`04` | Discover, download, extract, land the RAW layer |
 | `05_stage.py` | Resolve RAW into 24 tidy staging tables |
 | `06_validate.py` | 19 reconciliation checks; non-zero exit on failure |
 | `07_mart.py` | 16 conformed mart tables, including the derived rent table |
