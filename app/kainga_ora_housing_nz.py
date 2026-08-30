@@ -1515,9 +1515,12 @@ def render_tab_methodology():
                              "Real vs Synthetic Lineage", "lineage", key="lin")
 
     st.markdown("### Source register")
-    st.caption("Most of these datasets are released under Creative Commons "
-               "Attribution licences (CC BY 3.0 or 4.0 New Zealand). Check each "
-               "publisher's terms before redistributing.")
+    st.caption("Licences verified at source on 2026-08-30: CC BY 4.0 for the "
+               "MSD and HUD/MCERT datasets, CC BY 3.0 NZ for MBIE rental bond "
+               "data, and unverified for the Kāinga Ora housing statistics "
+               "(kaingaora.govt.nz blocks non-browser clients, so no licence is "
+               "claimed for it). Check each publisher's terms before "
+               "redistributing.")
     render_detail_with_excel(get_source_register(df_db_schema), "Sources",
                              "Source Register", "source_register", key="src")
 
@@ -1667,7 +1670,10 @@ def render_attribution():
     """
     with st.expander("Data sources & attribution"):
         st.markdown(
-            "Built on open data used under **CC BY 4.0** — modified and "
+            "Built on open government data used under Creative Commons "
+            "attribution licences — **CC BY 4.0** (MSD, HUD/MCERT) and "
+            "**CC BY 3.0 NZ** (MBIE rental bonds); the Kāinga Ora housing "
+            "statistics licence is unverified and none is claimed. Modified and "
             "partly synthetic; demonstration of method, not published "
             "statistics. Full provenance: "
             "[ATTRIBUTION.md](https://github.com/celnicconsulting/kainga_ora_housing_nz/blob/main/ATTRIBUTION.md)."

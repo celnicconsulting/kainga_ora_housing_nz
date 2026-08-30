@@ -1,8 +1,11 @@
 # Kāinga Ora / New Zealand Public Housing Intelligence
 
-> **Data & licence.** Built on open data used under CC BY 4.0 — see
+> **Data & licence.** Built on open government data used under Creative Commons
+> attribution licences — CC BY 4.0 for the MSD and HUD/MCERT sources, CC BY 3.0
+> NZ for MBIE rental bonds, and one source (Kāinga Ora housing statistics) whose
+> licence could not be verified. See
 > [ATTRIBUTION.md](ATTRIBUTION.md) and [DATA_SOURCES.yaml](DATA_SOURCES.yaml)
-> for every source, licence, and modification. Demonstration of method only:
+> for every source, licence, evidence URL, and modification. Demonstration of method only:
 > the data is modified and partly synthetic, and must not be relied on for
 > operational, policy, or reporting purposes.
 
@@ -135,9 +138,11 @@ Two licences, and they cover different things:
 - **[LICENSE](LICENSE)** — MIT. Covers the application code in this repository
   only.
 - **[LICENSE-DATA](LICENSE-DATA)** — covers `data/kainga_ora_housing_public.duckdb`.
-  Source data stays under its publishers' licences (CC BY 4.0, and CC BY 3.0 NZ
-  for the MSD datasets); synthetic data is demonstration-only and carries no
-  statistical meaning.
+  Source data stays under its publishers' licences: CC BY 4.0 for the MSD and
+  HUD/MCERT datasets, CC BY 3.0 NZ for MBIE rental bond data, and **no claimed
+  licence** for the Kāinga Ora housing statistics, whose licence could not be
+  verified because kaingaora.govt.nz blocks non-browser clients. Synthetic data
+  is demonstration-only and carries no statistical meaning.
 
 Per-source provenance, licence and modification detail:
 [ATTRIBUTION.md](ATTRIBUTION.md) and [DATA_SOURCES.yaml](DATA_SOURCES.yaml).

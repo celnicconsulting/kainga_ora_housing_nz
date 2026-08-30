@@ -13,15 +13,25 @@ government publications. Each source dataset remains under its own publisher's
 licence, recorded per dataset in DATA_SOURCES.yaml and summarised in
 ATTRIBUTION.md:
 
-  - MBIE / Tenancy Services, rental bond data ................... CC BY 4.0
-  - Ministry of Housing and Urban Development,
-    Public Housing Quarterly Report ............................. CC BY 4.0
-  - Kāinga Ora – Homes and Communities, housing statistics ...... CC BY 4.0
+  - MBIE / Tenancy Services, rental bond data ................... CC BY 3.0 NZ
   - Ministry of Social Development, Housing Register,
-    Transfer Register and housing support statistics ............ CC BY 3.0 NZ
+    Transfer Register and housing support statistics ............ CC BY 4.0
+  - Ministry of Housing and Urban Development / MCERT,
+    Public Housing Quarterly Report ............................. CC BY 4.0
+  - Kāinga Ora – Homes and Communities, housing statistics ...... UNVERIFIED
 
   CC BY 4.0    https://creativecommons.org/licenses/by/4.0/
   CC BY 3.0 NZ https://creativecommons.org/licenses/by/3.0/nz/
+
+Each licence above was read from the publisher on 2026-08-30; the page it was
+read from is recorded per dataset in DATA_SOURCES.yaml as licence_evidence.
+
+The Kāinga Ora housing statistics licence could NOT be verified:
+kaingaora.govt.nz sits behind a web application firewall that refuses
+non-browser clients, and Kāinga Ora has no data.govt.nz catalogue record for
+these statistics. No licence is claimed for that data. Anyone wishing to
+redistribute figures derived from it should establish the licence with Kāinga
+Ora first.
 
 Anyone redistributing this derived data must attribute those publishers under
 the licence that applies to each dataset. Attribution does not imply
