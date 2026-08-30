@@ -1,0 +1,43 @@
+DATA LICENCE
+============
+
+The MIT licence in LICENSE covers the CODE in this repository only — the
+Streamlit application, the build notes and the configuration. It does not
+cover the data.
+
+Source data
+-----------
+
+The data in data/kainga_ora_housing_public.duckdb is derived from New Zealand
+government publications. Each source dataset remains under its own publisher's
+licence, recorded per dataset in DATA_SOURCES.yaml and summarised in
+ATTRIBUTION.md:
+
+  - MBIE / Tenancy Services, rental bond data ................... CC BY 4.0
+  - Ministry of Housing and Urban Development,
+    Public Housing Quarterly Report ............................. CC BY 4.0
+  - Kāinga Ora – Homes and Communities, housing statistics ...... CC BY 4.0
+  - Ministry of Social Development, Housing Register,
+    Transfer Register and housing support statistics ............ CC BY 3.0 NZ
+
+  CC BY 4.0    https://creativecommons.org/licenses/by/4.0/
+  CC BY 3.0 NZ https://creativecommons.org/licenses/by/3.0/nz/
+
+Anyone redistributing this derived data must attribute those publishers under
+the licence that applies to each dataset. Attribution does not imply
+endorsement: this project is independent and is not affiliated with, endorsed
+by, or produced on behalf of Kāinga Ora, MSD, HUD/MCERT or MBIE.
+
+The data has been modified — downloaded, staged, transformed, and in places
+mixed with synthetic records. It is a demonstration of method, not published
+statistics, and must not be relied on for operational, policy or reporting
+purposes.
+
+Synthetic data
+--------------
+
+Tables in the SYN schema, and the curated territorial authority and Auckland
+local board centroids, are generated or authored by Celnic Consulting for
+demonstration purposes. They are offered as CC0 and carry no statistical
+meaning: they describe no real property, tenancy, household or applicant, and
+no real boundary.

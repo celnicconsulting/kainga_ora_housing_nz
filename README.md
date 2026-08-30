@@ -1,5 +1,11 @@
 # Kāinga Ora / New Zealand Public Housing Intelligence
 
+> **Data & licence.** Built on open data used under CC BY 4.0 — see
+> [ATTRIBUTION.md](ATTRIBUTION.md) and [DATA_SOURCES.yaml](DATA_SOURCES.yaml)
+> for every source, licence, and modification. Demonstration of method only:
+> the data is modified and partly synthetic, and must not be relied on for
+> operational, policy, or reporting purposes.
+
 An interactive view of New Zealand's public housing system, built entirely from
 open government data: who is waiting for a house, what stock exists and where,
 and how far the rent a state tenant pays sits below the market.
@@ -122,10 +128,19 @@ credentials, no network access, no API keys.
 
 ---
 
-## Licence and attribution
+## Licence
 
-Application code: MIT. Derived data: Creative Commons Attribution, per the
-originating agencies. See [LICENSE](LICENSE).
+Two licences, and they cover different things:
+
+- **[LICENSE](LICENSE)** — MIT. Covers the application code in this repository
+  only.
+- **[LICENSE-DATA](LICENSE-DATA)** — covers `data/kainga_ora_housing_public.duckdb`.
+  Source data stays under its publishers' licences (CC BY 4.0, and CC BY 3.0 NZ
+  for the MSD datasets); synthetic data is demonstration-only and carries no
+  statistical meaning.
+
+Per-source provenance, licence and modification detail:
+[ATTRIBUTION.md](ATTRIBUTION.md) and [DATA_SOURCES.yaml](DATA_SOURCES.yaml).
 
 Independent build by Celnic Consulting. Enquiries and corrections are welcome
 through the issues page of this repository.

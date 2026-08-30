@@ -1,0 +1,167 @@
+# DATA_SOURCES.yaml - provenance and licence manifest
+generated_by: show-me-org attribution pass, 2026-08-30
+repository: https://github.com/celnicconsulting/kainga_ora_housing_nz
+note: >
+  This repository publishes derived artefacts only (the DuckDB extract the app
+  reads). The raw downloads and staging tables named under upstream_files live
+  in the private working tree and are not redistributed here.
+datasets:
+  - id: d11_rental_bonds
+    title: "Rental bond data"
+    publisher: "Ministry of Business, Innovation and Employment / Tenancy Services"
+    source_url: "https://www.tenancy.govt.nz/about-tenancy-services/data-and-statistics/rental-bond-data/"
+    licence: "CC BY 4.0"
+    licence_url: "https://creativecommons.org/licenses/by/4.0/"
+    retrieved: "2026-08-23"
+    modified: true
+    modifications: "downloaded, staged, transformed; may be mixed with synthetic records"
+    note: >
+      Registry records this as "CC BY 4.0 NZ". Four assets retrieved: detailed
+      quarterly 2020-2026 CSV, detailed quarterly 1993-2019 ZIP, monthly by
+      region CSV, monthly by territorial authority CSV. Feeds the measured
+      market-rent series; M_MARKET_RENT_TA_BEDROOM is modelled from it because
+      MBIE publishes no TA-by-bedroom cut.
+    files:
+      - data/kainga_ora_housing_public.duckdb
+    upstream_files:
+      - raw/bonds/**
+      - stage/tidy/BOND_RENTAL_BONDS__*.parquet
+
+  - id: d13_hud_public_housing_quarterly
+    title: "Public Housing Quarterly Report and regional factsheets"
+    publisher: "Ministry of Housing and Urban Development (HUD)"
+    source_url: "https://www.hud.govt.nz/stats-and-insights/public-housing-quarterly-reports"
+    licence: "CC BY 4.0"
+    licence_url: "https://creativecommons.org/licenses/by/4.0/"
+    retrieved: "2026-08-23"
+    modified: true
+    modifications: "downloaded, staged, transformed; may be mixed with synthetic records"
+    note: >
+      Registry records this as "CC BY 4.0 NZ". 84 PDFs (national report plus
+      regional factsheets); headline tables parsed from PDF text. The series
+      ceases after 2023Q4, when HUD stopped publishing the report.
+    files:
+      - data/kainga_ora_housing_public.duckdb
+    upstream_files:
+      - raw/hqr/**
+      - stage/pdftext/HUD_PUBLIC_HOUSING_QUARTERLY__*.parquet
+
+  - id: d14_msd_housing_register
+    title: "Housing Register and Transfer Register"
+    publisher: "Ministry of Social Development"
+    source_url: "https://www.msd.govt.nz/about-msd-and-our-work/publications-resources/statistics/housing/housing-register.html"
+    licence: "CC BY 3.0 NZ"
+    licence_url: "https://creativecommons.org/licenses/by/3.0/nz/"
+    retrieved: "2026-08-23"
+    modified: true
+    modifications: "downloaded, staged, transformed; may be mixed with synthetic records"
+    licence_issue: true
+    licence_note: >
+      Released under CC BY 3.0 NZ, not CC BY 4.0. Still an attribution-only
+      Creative Commons licence and compatible with redistribution of derived
+      work, but it must be cited as CC BY 3.0 NZ rather than swept into a
+      blanket CC BY 4.0 statement. Keep, with dataset-specific attribution.
+    note: >
+      Includes the Transfer Register and the MSD housing statistics archive,
+      which share this schema and licence. Counts are randomly rounded to base 3
+      by the publisher and small cells are suppressed.
+    files:
+      - data/kainga_ora_housing_public.duckdb
+    upstream_files:
+      - raw/register/**
+      - stage/cells/MSD_HOUSING_REGISTER__*.parquet
+
+  - id: d14_msd_housing_support
+    title: "MSD housing support statistics (emergency housing, monthly and quarterly housing reporting, quarterly factsheets)"
+    publisher: "Ministry of Social Development"
+    source_url: "https://www.msd.govt.nz/about-msd-and-our-work/publications-resources/statistics/housing/emergency-housing.html"
+    licence: "CC BY 3.0 NZ"
+    licence_url: "https://creativecommons.org/licenses/by/3.0/nz/"
+    retrieved: "2026-08-23"
+    modified: true
+    modifications: "downloaded, staged, transformed; may be mixed with synthetic records"
+    licence_issue: true
+    licence_note: >
+      Released under CC BY 3.0 NZ, not CC BY 4.0. Attribution-only and safe to
+      redistribute in derived form, but must be cited as CC BY 3.0 NZ. Keep,
+      with dataset-specific attribution.
+    note: >
+      Not named in the originating work packet; found while resolving the
+      packet's 404ing MSD URL. Carries the emergency-housing and social-housing
+      series through to 2026, covering the period after HUD ceased the Public
+      Housing Quarterly Report.
+    files:
+      - data/kainga_ora_housing_public.duckdb
+    upstream_files:
+      - raw/register/**
+      - stage/cells/MSD_HOUSING_SUPPORT__*.parquet
+
+  - id: d15_kainga_ora_housing_statistics
+    title: "Kāinga Ora housing statistics (managed stock, vacant stock, homes removed from service)"
+    publisher: "Kāinga Ora – Homes and Communities"
+    source_url: "https://kaingaora.govt.nz/en_NZ/publications/oia-and-proactive-releases/housing-statistics/"
+    licence: "CC BY 4.0"
+    licence_url: "https://creativecommons.org/licenses/by/4.0/"
+    retrieved: "2026-08-23"
+    modified: true
+    modifications: "downloaded, staged, transformed; may be mixed with synthetic records"
+    note: >
+      Registry records this as "CC BY 4.0 NZ". 105 files across the current and
+      archive pages, back to September 2015. XLSX from the September 2025
+      release onward; PDF only before that. Archive landing page:
+      https://kaingaora.govt.nz/en_NZ/publications/oia-and-proactive-releases/housing-statistics/housing-statistics-archive/
+    files:
+      - data/kainga_ora_housing_public.duckdb
+    upstream_files:
+      - raw/ko/**
+      - stage/cells/KO_HOUSING_STATISTICS__*.parquet
+      - stage/pdftext/KO_HOUSING_STATISTICS__*.parquet
+
+  - id: d16_statsnz_geography
+    title: "Statistical Area 2 / territorial authority boundaries and centroids"
+    publisher: "Stats NZ (Geographic Data Service / Datafinder)"
+    source_url: "https://datafinder.stats.govt.nz/"
+    licence: "UNVERIFIED"
+    licence_url: ""
+    retrieved: "unknown"
+    modified: false
+    licence_issue: true
+    licence_note: >
+      Registered in the source registry as "CC BY 4.0 NZ" but never retrieved:
+      the Geographic Data Service requires a per-account API key, so nothing was
+      downloaded (raw/statsnz/ is empty, no rows in the download manifest) and
+      this dataset is absent from the source register shipped in the extract.
+      No Stats NZ data is redistributed in this repository. The licence is
+      recorded as UNVERIFIED because it was never checked against a retrieved
+      asset. Recommendation: drop it from the registry, or retrieve and verify
+      before claiming it.
+    files: []
+    upstream_files: []
+
+  - id: geography_reference
+    title: "Territorial authority and Auckland local board reference centroids"
+    publisher: "Celnic Consulting (curated)"
+    licence: "CC0 / demonstration only"
+    modified: false
+    note: >
+      Curated in scripts/nz_geography.py as a substitute for the un-retrievable
+      Stats NZ boundaries: 67 territorial authorities and 21 Auckland local
+      boards with region and an approximate population-weighted centroid.
+      Centroids, not boundaries, and not derived from any licensed source file.
+    files:
+      - data/kainga_ora_housing_public.duckdb
+
+  - id: synthetic
+    title: "Synthetic demonstration data"
+    publisher: "Celnic Consulting (generated)"
+    licence: "CC0 / demonstration only"
+    modified: false
+    note: >
+      Generated to fill gaps per the work packet; carries no statistical
+      meaning. Tables SYN_KO_PROPERTY, SYN_KO_TENANCY, SYN_HOUSING_REGISTER and
+      SYN_MAINTENANCE, seeded so their totals reconcile to published aggregates.
+      Market rent joined onto SYN_KO_TENANCY is measured from d11_rental_bonds;
+      everything else in the SYN schema is modelled. Describes no real property,
+      tenancy, household or applicant.
+    files:
+      - data/kainga_ora_housing_public.duckdb

@@ -1654,6 +1654,26 @@ def render_disclaimer_banner(
     )
 
 
+def render_attribution():
+    """Bottom-of-page attribution expander, drawn under every tab.
+
+    The hazard banner above the tabs carries the warning; this carries the
+    licence. Both are needed and neither replaces the other: CC BY requires the
+    attribution to travel with the work, and a reader who scrolls to the bottom
+    of a chart should be able to find out whose data it is without opening the
+    Pipeline tab.
+
+    Closed by default, because the banner has already said the loud part.
+    """
+    with st.expander("Data sources & attribution"):
+        st.markdown(
+            "Built on open data used under **CC BY 4.0** — modified and "
+            "partly synthetic; demonstration of method, not published "
+            "statistics. Full provenance: "
+            "[ATTRIBUTION.md](https://github.com/celnicconsulting/kainga_ora_housing_nz/blob/main/ATTRIBUTION.md)."
+        )
+
+
 def _safe_filename(text):
     """Sanitise text for use in a download filename.
 
@@ -1774,15 +1794,18 @@ def main():
         2  H1                    application title
         3  hazard banner         provenance warning, above the tabs
         4  tab bar and body      the six tabs
+        5  attribution           CC BY licence expander, below the tabs
 
     The hazard banner is drawn before the tabs, not inside a footer, so the
     provenance caveat is read before any figure rather than found underneath
-    one.
+    one. The attribution expander is the licence, not the warning, and belongs
+    at the foot of the page where a citation would go.
     """
     render_sidebar()
     st.title("Kāinga Ora / New Zealand Public Housing Intelligence")
     render_disclaimer_banner()
     render_main_tabs()
+    render_attribution()
 
 
 if __name__ == "__main__":
